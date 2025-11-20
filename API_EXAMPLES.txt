@@ -1,0 +1,447 @@
+================================================================================
+API EXAMPLES - EJEMPLOS DE USO
+================================================================================
+
+BASE URL
+--------
+Development: http://localhost:4000
+Production:  https://your-domain.com
+
+AUTENTICACIÓN
+-------------
+Todos los endpoints protegidos requieren:
+- Header: Authorization: Bearer <token>
+- O Cookie: token=<token>
+
+================================================================================
+ENDPOINTS
+================================================================================
+
+1. HEALTH CHECK
+---------------
+GET /health
+
+Response 200:
+{
+  "success": true,
+  "message": "API is running",
+  "timestamp": "2024-01-01T12:00:00.000Z"
+}
+
+--------------------------------------------------------------------------------
+
+2. REGISTER USER
+----------------
+POST /api/auth/register
+
+Headers:
+  Content-Type: application/json
+
+Body:
+{
+  "email": "user@example.com",
+  "password": "Password123!",
+  "name": "John Doe"
+}
+
+Response 201:
+{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "John Doe",
+    "role": "user",
+    "isActive": true,
+    "createdAt": "2024-01-01T12:00:00.000Z",
+    "updatedAt": "2024-01-01T12:00:00.000Z"
+  }
+}
+
+Response 400 (Email ya existe):
+{
+  "success": false,
+  "message": "Email already registered"
+}
+
+Response 400 (Validación):
+{
+  "success": false,
+  "message": "Validation error",
+  "errors": [
+    {
+      "msg": "Email must be valid",
+      "param": "email",
+      "location": "body"
+    }
+  ]
+}
+
+--------------------------------------------------------------------------------
+
+3. LOGIN
+--------
+POST /api/auth/login
+
+Headers:
+  Content-Type: application/json
+
+Body:
+{
+  "email": "user@example.com",
+  "password": "Password123!"
+}
+
+Response 200:
+{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "John Doe",
+    "role": "user",
+    "isActive": true,
+    "createdAt": "2024-01-01T12:00:00.000Z",
+    "updatedAt": "2024-01-01T12:00:00.000Z"
+  }
+}
+
+Response 401 (Credenciales inválidas):
+{
+  "success": false,
+  "message": "Invalid credentials"
+}
+
+Response 400 (Validación):
+{
+  "success": false,
+  "message": "Validation error",
+  "errors": [...]
+}
+
+--------------------------------------------------------------------------------
+
+4. GET CURRENT USER
+-------------------
+GET /api/auth/me
+
+Headers:
+  Authorization: Bearer <token>
+
+Response 200:
+{
+  "success": true,
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "John Doe",
+    "role": "user",
+    "isActive": true,
+    "createdAt": "2024-01-01T12:00:00.000Z",
+    "updatedAt": "2024-01-01T12:00:00.000Z"
+  }
+}
+
+Response 401 (No autenticado):
+{
+  "success": false,
+  "message": "Not authorized - No token"
+}
+
+Response 401 (Token inválido):
+{
+  "success": false,
+  "message": "Not authorized - Invalid token"
+}
+
+================================================================================
+EJEMPLOS DE USO
+================================================================================
+
+CURL
+----
+
+# Register
+curl -X POST http://localhost:4000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "Test123!",
+    "name": "Test User"
+  }'
+
+# Login
+curl -X POST http://localhost:4000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "Test123!"
+  }'
+
+# Get current user
+curl -X GET http://localhost:4000/api/auth/me \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+
+--------------------------------------------------------------------------------
+
+JAVASCRIPT (FETCH)
+------------------
+
+// Register
+const register = async () => {
+  const response = await fetch('http://localhost:4000/api/auth/register', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email: 'test@example.com',
+      password: 'Test123!',
+      name: 'Test User'
+    })
+  });
+  
+  const data = await response.json();
+  console.log(data);
+};
+
+// Login
+const login = async () => {
+  const response = await fetch('http://localhost:4000/api/auth/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // Para cookies
+    body: JSON.stringify({
+      email: 'test@example.com',
+      password: 'Test123!'
+    })
+  });
+  
+  const data = await response.json();
+  
+  if (data.success) {
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+  }
+  
+  return data;
+};
+
+// Get current user
+const getCurrentUser = async () => {
+  const token = localStorage.getItem('token');
+  
+  const response = await fetch('http://localhost:4000/api/auth/me', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  
+  const data = await response.json();
+  return data;
+};
+
+--------------------------------------------------------------------------------
+
+AXIOS (REACT)
+-------------
+
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:4000/api',
+  withCredentials: true
+});
+
+// Interceptor para agregar token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Register
+const register = async (email, password, name) => {
+  try {
+    const response = await api.post('/auth/register', {
+      email,
+      password,
+      name
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Register error:', error.response?.data);
+    throw error;
+  }
+};
+
+// Login
+const login = async (email, password) => {
+  try {
+    const response = await api.post('/auth/login', {
+      email,
+      password
+    });
+    
+    if (response.data.success) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Login error:', error.response?.data);
+    throw error;
+  }
+};
+
+// Get current user
+const getCurrentUser = async () => {
+  try {
+    const response = await api.get('/auth/me');
+    return response.data;
+  } catch (error) {
+    console.error('Get user error:', error.response?.data);
+    throw error;
+  }
+};
+
+--------------------------------------------------------------------------------
+
+POWERSHELL
+----------
+
+# Register
+$body = @{
+    email = "test@example.com"
+    password = "Test123!"
+    name = "Test User"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:4000/api/auth/register" `
+  -Method Post `
+  -Body $body `
+  -ContentType "application/json"
+
+# Login
+$body = @{
+    email = "test@example.com"
+    password = "Test123!"
+} | ConvertTo-Json
+
+$response = Invoke-RestMethod -Uri "http://localhost:4000/api/auth/login" `
+  -Method Post `
+  -Body $body `
+  -ContentType "application/json"
+
+$token = $response.token
+
+# Get current user
+Invoke-RestMethod -Uri "http://localhost:4000/api/auth/me" `
+  -Method Get `
+  -Headers @{Authorization = "Bearer $token"}
+
+================================================================================
+CÓDIGOS DE ESTADO HTTP
+================================================================================
+
+200 OK                  - Request exitoso
+201 Created             - Recurso creado exitosamente
+400 Bad Request         - Error de validación o request inválido
+401 Unauthorized        - No autenticado o token inválido
+403 Forbidden           - Autenticado pero sin permisos
+404 Not Found           - Recurso no encontrado
+429 Too Many Requests   - Rate limit excedido
+500 Internal Server     - Error del servidor
+
+================================================================================
+RATE LIMITING
+================================================================================
+
+General API:
+- 100 requests por 15 minutos por IP
+
+Auth Endpoints (login, register):
+- 5 requests por 15 minutos por IP
+
+Response cuando se excede:
+{
+  "success": false,
+  "message": "Too many requests from this IP"
+}
+
+Headers de rate limit:
+- RateLimit-Limit: 100
+- RateLimit-Remaining: 95
+- RateLimit-Reset: 1640000000
+
+================================================================================
+AGREGAR NUEVOS ENDPOINTS
+================================================================================
+
+1. Crear Controller (api/src/controllers/myController.js):
+
+const { Model } = require('../models');
+
+const getAll = async (req, res) => {
+  try {
+    const items = await Model.findAll();
+    res.json({ success: true, data: items });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+module.exports = { getAll };
+
+2. Crear Route (api/src/routes/myRoute.js):
+
+const express = require('express');
+const router = express.Router();
+const { getAll } = require('../controllers/myController');
+const { protect } = require('../middleware/auth');
+
+router.get('/', protect, getAll);
+
+module.exports = router;
+
+3. Registrar en server.js:
+
+app.use('/api/items', require('./routes/myRoute'));
+
+4. Probar:
+
+curl -X GET http://localhost:4000/api/items \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+================================================================================
+TESTING CON POSTMAN
+================================================================================
+
+1. Importar Collection:
+   - Crear nueva collection "Base Template API"
+   - Agregar requests para cada endpoint
+
+2. Configurar Environment:
+   - base_url: http://localhost:4000
+   - token: (se setea automáticamente)
+
+3. Script para guardar token automáticamente:
+   En Tests tab del request de login:
+
+   if (pm.response.code === 200) {
+     const response = pm.response.json();
+     pm.environment.set("token", response.token);
+   }
+
+4. Usar token en otros requests:
+   Authorization tab → Type: Bearer Token
+   Token: {{token}}

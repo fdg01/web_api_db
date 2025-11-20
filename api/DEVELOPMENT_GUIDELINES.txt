@@ -1,0 +1,124 @@
+================================================================================
+API - CONSIDERACIONES DE DESARROLLO
+================================================================================
+
+SEGURIDAD
+---------
+✓ NUNCA exponer información sensible en respuestas (passwords, tokens internos)
+✓ Siempre validar y sanitizar inputs del usuario
+✓ Usar prepared statements (Sequelize lo hace automáticamente)
+✓ Implementar rate limiting en endpoints críticos
+✓ Validar tokens JWT en middleware protect
+✓ Usar HTTPS en producción
+✓ Configurar CORS correctamente - nunca usar '*' en producción
+✓ Hashear passwords con bcrypt (min 10 rounds)
+✓ Cookies httpOnly, secure, sameSite en producción
+
+VALIDACIÓN DE DATOS
+-------------------
+✓ Usar express-validator en todas las rutas que reciben datos
+✓ Validar tipos de datos (string, number, email, etc.)
+✓ Validar longitudes mínimas/máximas
+✓ Sanitizar inputs (trim, normalizeEmail, escape)
+✓ Retornar errores 400 con mensajes claros
+✓ Nunca confiar en datos del cliente
+
+MANEJO DE ERRORES
+-----------------
+✓ Usar try-catch en todos los controladores async
+✓ Middleware errorHandler centralizado
+✓ Logs descriptivos con console.error
+✓ Retornar status codes apropiados (200, 201, 400, 401, 403, 404, 500)
+✓ Mensajes de error genéricos al cliente (no exponer stack traces en producción)
+✓ Capturar unhandledRejection y uncaughtException
+
+MIGRACIONES SEQUELIZE
+---------------------
+✓ NUNCA modificar migraciones ya ejecutadas en producción
+✓ Crear nueva migración para cambios de schema
+✓ Usar timestamps en nombres: YYYYMMDDHHMMSS-description.js
+✓ Implementar siempre up() y down()
+✓ Probar rollback antes de deploy
+✓ Usar transacciones en migraciones complejas
+✓ Ejecutar migraciones automáticamente en entrypoint.sh
+✓ Backup de DB antes de migraciones en producción
+
+MODELOS SEQUELIZE
+-----------------
+✓ Usar underscored: true para snake_case en DB
+✓ Definir validaciones en el modelo
+✓ Usar hooks para lógica pre/post operaciones
+✓ Implementar toJSON() para excluir campos sensibles
+✓ Definir asociaciones en método associate()
+✓ Usar DataTypes apropiados
+✓ Índices en campos de búsqueda frecuente
+
+BASE DE DATOS
+-------------
+✓ Usar pool de conexiones (configurado en models/index.js)
+✓ Cerrar conexiones apropiadamente
+✓ Usar transacciones para operaciones múltiples
+✓ Evitar N+1 queries (usar include/eager loading)
+✓ Crear índices en foreign keys y campos de búsqueda
+✓ Backups regulares (ver docker-compose volumes)
+
+ESTRUCTURA DE CÓDIGO
+--------------------
+✓ Separar lógica: routes → controllers → services → models
+✓ Middleware reutilizable (auth, validators, errorHandler)
+✓ Funciones pequeñas y con responsabilidad única
+✓ Nombres descriptivos para variables y funciones
+✓ Comentarios solo cuando la lógica no es obvia
+✓ Consistencia en formato de respuestas: { success, data/message }
+
+PERFORMANCE
+-----------
+✓ Limitar resultados con pagination
+✓ Usar select específico (no traer todos los campos)
+✓ Cachear queries frecuentes cuando sea apropiado
+✓ Optimizar queries con índices
+✓ Limitar tamaño de uploads
+✓ Comprimir responses grandes
+
+TESTING
+-------
+✓ Probar endpoints con diferentes inputs
+✓ Validar casos edge (null, undefined, strings vacíos)
+✓ Verificar autenticación/autorización
+✓ Probar rate limiting
+✓ Verificar que migraciones funcionen up/down
+
+DOCKER
+------
+✓ Multi-stage builds para optimizar tamaño
+✓ No incluir node_modules en imagen (usar COPY selectivo)
+✓ Usuario no-root (node)
+✓ Health checks configurados
+✓ Variables de entorno para configuración
+✓ Logs a stdout/stderr (no archivos en container)
+✓ Volúmenes para datos persistentes (uploads, logs)
+
+VARIABLES DE ENTORNO
+--------------------
+✓ NUNCA commitear .env
+✓ Usar .env.example como template
+✓ Validar variables críticas al inicio
+✓ Defaults seguros para desarrollo
+✓ Secrets complejos en producción (JWT_SECRET, ENCRYPTION_KEY)
+
+LOGS
+----
+✓ Usar morgan para request logging
+✓ Logs estructurados con contexto
+✓ Niveles apropiados (info, warn, error)
+✓ No loguear información sensible
+✓ Timestamps en todos los logs
+
+DEPLOYMENT
+----------
+✓ NODE_ENV=production en producción
+✓ Ejecutar migraciones antes de iniciar servidor
+✓ Health check endpoint funcional
+✓ Graceful shutdown
+✓ Monitoreo de recursos (CPU, memoria)
+✓ Rate limiting configurado

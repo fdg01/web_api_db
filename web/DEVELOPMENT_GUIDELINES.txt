@@ -1,0 +1,179 @@
+================================================================================
+WEB - CONSIDERACIONES DE DESARROLLO
+================================================================================
+
+SEGURIDAD
+---------
+✓ NUNCA almacenar información sensible en localStorage sin encriptar
+✓ Tokens en localStorage (o httpOnly cookies si API lo soporta)
+✓ Validar inputs del usuario en frontend (además de backend)
+✓ Sanitizar datos antes de renderizar (React lo hace automáticamente)
+✓ Usar HTTPS en producción
+✓ Content Security Policy configurado en nginx
+✓ No exponer API keys en código frontend
+✓ Implementar CSRF protection si usas cookies
+
+MANEJO DE ESTADO
+----------------
+✓ Context API para estado global (auth, theme, etc.)
+✓ useState para estado local de componentes
+✓ useEffect con dependencies correctas
+✓ Cleanup en useEffect cuando sea necesario
+✓ Evitar prop drilling excesivo
+✓ Considerar Zustand/Redux solo si realmente se necesita
+
+AUTENTICACIÓN
+-------------
+✓ Verificar autenticación en ProtectedRoute
+✓ Interceptor axios para agregar token automáticamente
+✓ Interceptor para manejar 401 (redirect a login)
+✓ Limpiar storage al logout
+✓ Verificar token al cargar app (checkAuth)
+✓ Loading state mientras se verifica auth
+
+API CALLS
+---------
+✓ Usar axios instance configurado (api/axios.js)
+✓ Centralizar configuración (baseURL, headers, interceptors)
+✓ Manejar errores en try-catch
+✓ Loading states durante requests
+✓ Mostrar errores al usuario de forma amigable
+✓ Timeout configurado para requests
+✓ Retry logic para requests críticos (opcional)
+
+VALIDACIÓN DE FORMULARIOS
+-------------------------
+✓ Validación en tiempo real (onChange)
+✓ Validación al submit
+✓ Mensajes de error claros y específicos
+✓ Deshabilitar submit mientras se procesa
+✓ Limpiar errores al corregir input
+✓ Feedback visual (borders rojos, mensajes)
+
+COMPONENTES
+-----------
+✓ Componentes pequeños y reutilizables
+✓ Props con PropTypes o TypeScript
+✓ Composición sobre herencia
+✓ Separar lógica de presentación
+✓ Nombres descriptivos (PascalCase para componentes)
+✓ Un componente por archivo
+✓ Organizar por feature o tipo (components/common, pages/)
+
+PERFORMANCE
+-----------
+✓ React.memo para componentes que re-renderizan frecuentemente
+✓ useMemo para cálculos costosos
+✓ useCallback para funciones pasadas como props
+✓ Lazy loading de rutas (React.lazy + Suspense)
+✓ Optimizar imágenes (tamaño, formato, lazy loading)
+✓ Code splitting automático con Vite
+✓ Evitar renders innecesarios
+
+ESTILOS
+-------
+✓ TailwindCSS para estilos (utility-first)
+✓ Componentes reutilizables con variantes
+✓ Usar cn() utility para merge de clases
+✓ Variables CSS para theming (--global-bg, etc.)
+✓ Responsive design (mobile-first)
+✓ Consistencia en spacing, colores, tipografía
+✓ Dark mode considerado desde el inicio (opcional)
+
+ACCESIBILIDAD
+-------------
+✓ Semantic HTML (button, nav, main, etc.)
+✓ Labels en inputs
+✓ Alt text en imágenes
+✓ Keyboard navigation funcional
+✓ Focus visible
+✓ ARIA labels cuando sea necesario
+✓ Contraste de colores adecuado
+
+ROUTING
+-------
+✓ React Router para navegación
+✓ ProtectedRoute para rutas autenticadas
+✓ Navigate para redirects programáticos
+✓ Rutas descriptivas y RESTful
+✓ 404 page para rutas no encontradas
+✓ Lazy loading de páginas
+
+MANEJO DE ERRORES
+-----------------
+✓ Error boundaries para errores de React
+✓ Try-catch en async operations
+✓ Mensajes de error user-friendly
+✓ Fallbacks para estados de error
+✓ Logs de errores (console.error)
+✓ No exponer stack traces al usuario
+
+ESTRUCTURA DE CÓDIGO
+--------------------
+✓ src/
+  ├── api/          → axios config, api calls
+  ├── components/   → componentes reutilizables
+  ├── contexts/     → React contexts
+  ├── pages/        → páginas/vistas
+  ├── utils/        → funciones helper
+  └── assets/       → imágenes, iconos
+✓ Imports organizados (React, libraries, local)
+✓ Nombres descriptivos
+✓ Comentarios solo cuando necesario
+
+VITE
+----
+✓ Variables de entorno con VITE_ prefix
+✓ import.meta.env para acceder a env vars
+✓ Build optimizado para producción
+✓ Tree shaking automático
+✓ Hot Module Replacement en desarrollo
+✓ Proxy configurado para API en desarrollo
+
+DOCKER
+------
+✓ Multi-stage build (build → nginx)
+✓ Nginx para servir archivos estáticos
+✓ Health check endpoint
+✓ Proxy reverso a API configurado
+✓ Compression (gzip) habilitado
+✓ Cache headers apropiados
+✓ Security headers configurados
+
+TESTING
+-------
+✓ Probar flujos críticos (login, registro, etc.)
+✓ Validar formularios con datos inválidos
+✓ Verificar responsive design
+✓ Probar en diferentes navegadores
+✓ Verificar accesibilidad básica
+✓ Performance testing (Lighthouse)
+
+UX/UI
+-----
+✓ Loading states visibles
+✓ Feedback inmediato a acciones
+✓ Mensajes de éxito/error claros
+✓ Confirmaciones para acciones destructivas
+✓ Diseño consistente
+✓ Navegación intuitiva
+✓ Mobile-friendly
+
+DEPLOYMENT
+----------
+✓ Build de producción optimizado
+✓ Variables de entorno configuradas
+✓ HTTPS configurado
+✓ CDN para assets estáticos (opcional)
+✓ Monitoring de errores (Sentry, etc.)
+✓ Analytics configurado (opcional)
+
+BUENAS PRÁCTICAS
+----------------
+✓ No usar index como key en listas
+✓ Evitar inline functions en JSX (usar useCallback)
+✓ Destructuring de props
+✓ Early returns para condiciones
+✓ Consistent naming conventions
+✓ DRY (Don't Repeat Yourself)
+✓ KISS (Keep It Simple, Stupid)

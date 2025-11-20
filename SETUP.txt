@@ -1,0 +1,258 @@
+================================================================================
+SETUP INSTRUCTIONS - BASE TEMPLATE
+================================================================================
+
+PREREQUISITOS
+-------------
+✓ Docker Desktop instalado y corriendo
+✓ Git (opcional, para clonar)
+✓ Editor de código (VS Code recomendado)
+
+PASO 1: CONFIGURAR VARIABLES DE ENTORNO
+----------------------------------------
+1. Copiar archivo de ejemplo:
+   cp .env.example .env
+
+2. Generar secrets seguros:
+   
+   # JWT Secret (Linux/Mac)
+   openssl rand -base64 32
+   
+   # Encryption Key (Linux/Mac)
+   openssl rand -hex 32
+   
+   # En Windows (PowerShell)
+   [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+
+3. Editar .env con tus valores:
+   POSTGRES_PASSWORD=tu-password-seguro
+   JWT_SECRET=el-secret-generado
+   ENCRYPTION_KEY=la-key-generada-64-chars
+   CORS_ORIGIN=http://localhost:5173,http://localhost:8080
+
+PASO 2: RENOMBRAR .dockerignore
+--------------------------------
+Los archivos dockerignore.txt deben renombrarse a .dockerignore:
+
+# Linux/Mac
+mv api/dockerignore.txt api/.dockerignore
+mv web/dockerignore.txt web/.dockerignore
+
+# Windows (PowerShell)
+Rename-Item api\dockerignore.txt .dockerignore
+Rename-Item web\dockerignore.txt .dockerignore
+
+PASO 3: INICIAR SERVICIOS
+--------------------------
+docker-compose up -d
+
+Esto iniciará:
+- PostgreSQL en puerto 5432
+- API en puerto 4000
+- Web en puerto 8080
+
+PASO 4: VERIFICAR QUE TODO FUNCIONA
+------------------------------------
+# Ver estado de servicios
+docker-compose ps
+
+# Ver logs
+docker-compose logs -f
+
+# Verificar health checks
+docker-compose ps
+# Todos deben mostrar "healthy"
+
+PASO 5: CREAR PRIMER USUARIO
+-----------------------------
+Opción A - Usando curl (Linux/Mac):
+curl -X POST http://localhost:4000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@example.com",
+    "password": "Admin123!",
+    "name": "Admin User"
+  }'
+
+Opción B - Usando PowerShell (Windows):
+$body = @{
+    email = "admin@example.com"
+    password = "Admin123!"
+    name = "Admin User"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:4000/api/auth/register" `
+  -Method Post `
+  -Body $body `
+  -ContentType "application/json"
+
+Opción C - Usando navegador:
+1. Ir a http://localhost:8080
+2. Será redirigido a login
+3. No hay link de registro en UI, usar API directamente
+
+PASO 6: ACCEDER A LA APLICACIÓN
+--------------------------------
+1. Abrir navegador en http://localhost:8080
+2. Login con las credenciales creadas
+3. Serás redirigido al Dashboard
+
+PASO 7 (OPCIONAL): PGADMIN
+---------------------------
+Para administrar la base de datos visualmente:
+
+docker-compose --profile tools up -d
+
+Acceder a http://localhost:5050
+- Email: admin@example.com
+- Password: admin
+
+Agregar servidor:
+- Host: postgres
+- Port: 5432
+- Database: app_db
+- Username: postgres
+- Password: (el de tu .env)
+
+DESARROLLO LOCAL (SIN DOCKER)
+------------------------------
+Si prefieres desarrollar sin Docker:
+
+1. Instalar PostgreSQL localmente
+2. Crear base de datos:
+   createdb app_db
+
+3. Configurar .env con localhost:
+   DB_HOST=localhost
+   DB_PORT=5432
+
+4. Instalar dependencias:
+   cd api && npm install
+   cd ../web && npm install
+
+5. Ejecutar migraciones:
+   cd api
+   npm run migrate
+
+6. Iniciar servicios en terminales separadas:
+   # Terminal 1
+   cd api
+   npm run dev
+
+   # Terminal 2
+   cd web
+   npm run dev
+
+7. Acceder a http://localhost:5173
+
+PERSONALIZACIÓN
+---------------
+
+1. CAMBIAR NOMBRE DEL PROYECTO
+   - Editar package.json en api/ y web/
+   - Editar docker-compose.yml (container_name, volumes, network)
+   - Editar títulos en web/index.html y componentes
+
+2. AGREGAR NUEVOS MODELOS
+   - Crear modelo en api/src/models/
+   - Crear migración: npx sequelize-cli migration:generate --name create-model
+   - Editar migración en api/src/migrations/
+   - Ejecutar: npm run migrate
+
+3. AGREGAR NUEVAS RUTAS
+   - Crear controller en api/src/controllers/
+   - Crear route en api/src/routes/
+   - Registrar en api/src/server.js
+
+4. AGREGAR NUEVAS PÁGINAS
+   - Crear componente en web/src/pages/
+   - Agregar ruta en web/src/App.jsx
+
+COMANDOS ÚTILES
+---------------
+
+# Ver logs en tiempo real
+docker-compose logs -f [api|web|postgres]
+
+# Reiniciar un servicio
+docker-compose restart [service]
+
+# Rebuild después de cambios
+docker-compose up -d --build
+
+# Detener todo
+docker-compose down
+
+# Detener y eliminar volúmenes (CUIDADO: borra datos)
+docker-compose down -v
+
+# Ejecutar comando en container
+docker-compose exec api npm run migrate
+docker-compose exec api sh
+
+# Ver uso de recursos
+docker stats
+
+# Limpiar Docker
+docker system prune -a
+
+BACKUP DE BASE DE DATOS
+-----------------------
+
+# Crear backup
+docker-compose exec postgres pg_dump -U postgres app_db > backup_$(date +%Y%m%d).sql
+
+# Restaurar backup
+docker-compose exec -T postgres psql -U postgres app_db < backup_20240101.sql
+
+TROUBLESHOOTING
+---------------
+
+PROBLEMA: "Error: connect ECONNREFUSED"
+SOLUCIÓN: 
+  - Verificar que postgres esté corriendo: docker-compose ps
+  - Esperar a que postgres esté healthy
+  - Reiniciar api: docker-compose restart api
+
+PROBLEMA: "Migration failed"
+SOLUCIÓN:
+  - Ver logs: docker-compose logs api
+  - Verificar conexión a DB
+  - Ejecutar manualmente: docker-compose exec api npm run migrate
+
+PROBLEMA: "CORS error"
+SOLUCIÓN:
+  - Verificar CORS_ORIGIN en .env
+  - Debe incluir el origen del frontend
+  - Reiniciar api después de cambiar .env
+
+PROBLEMA: "Cannot find module"
+SOLUCIÓN:
+  - Rebuild imagen: docker-compose up -d --build
+  - Verificar que package.json tenga la dependencia
+
+PROBLEMA: Puerto ya en uso
+SOLUCIÓN:
+  - Cambiar puerto en docker-compose.yml
+  - O detener el servicio que usa el puerto
+
+PROBLEMA: Cambios no se reflejan
+SOLUCIÓN:
+  - En desarrollo: usar bind mounts
+  - En producción: rebuild imagen
+
+SIGUIENTE PASOS
+---------------
+1. Leer DEVELOPMENT_GUIDELINES.txt en cada módulo
+2. Personalizar para tu proyecto
+3. Implementar funcionalidades específicas
+4. Configurar CI/CD
+5. Deploy a producción
+
+RECURSOS
+--------
+- React: https://react.dev
+- Express: https://expressjs.com
+- Sequelize: https://sequelize.org
+- Docker: https://docs.docker.com
+- PostgreSQL: https://www.postgresql.org/docs

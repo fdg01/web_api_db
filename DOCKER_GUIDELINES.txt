@@ -1,0 +1,330 @@
+================================================================================
+DOCKER - CONSIDERACIONES DE DESARROLLO
+================================================================================
+
+DOCKER COMPOSE
+--------------
+✓ Versión 3.8+ recomendada
+✓ Services separados: postgres, api, web
+✓ Networks para comunicación entre containers
+✓ Volumes para persistencia
+✓ Health checks en todos los servicios
+✓ Resource limits configurados
+✓ Restart policies apropiadas
+✓ Variables de entorno desde .env
+
+ESTRUCTURA
+----------
+base_template_web_api_db/
+├── docker-compose.yml      → Orquestación de servicios
+├── .env                    → Variables de entorno (NO commitear)
+├── .env.example            → Template de variables
+├── api/
+│   ├── docker/
+│   │   ├── Dockerfile      → Multi-stage build
+│   │   └── entrypoint.sh   → Script de inicialización
+│   └── src/                → Código fuente
+├── web/
+│   ├── docker/
+│   │   ├── Dockerfile      → Multi-stage build
+│   │   ├── nginx.conf      → Configuración nginx
+│   │   └── entrypoint.sh   → Script de inicialización
+│   └── src/                → Código fuente
+└── DATABASE_GUIDELINES.txt
+
+MULTI-STAGE BUILDS
+------------------
+✓ Stage 1: base - Imagen base con dependencias del sistema
+✓ Stage 2: dependencies - Instalación de node_modules
+✓ Stage 3: production - Imagen final optimizada
+✓ Stage 4: development - Imagen para desarrollo local
+✓ Beneficios:
+  - Imágenes más pequeñas
+  - Builds más rápidos (cache de layers)
+  - Separación desarrollo/producción
+
+DOCKERFILE BEST PRACTICES
+--------------------------
+✓ Usar imágenes oficiales (node:20-alpine)
+✓ Alpine para tamaño reducido
+✓ Multi-stage builds
+✓ .dockerignore para excluir archivos innecesarios
+✓ COPY selectivo (no COPY . al inicio)
+✓ Combinar RUN commands para reducir layers
+✓ Limpiar cache después de instalar (npm cache clean)
+✓ Usuario no-root (USER node)
+✓ HEALTHCHECK configurado
+✓ Labels para metadata
+✓ ARG para build-time variables
+✓ ENV para runtime variables
+
+EJEMPLO .dockerignore:
+node_modules
+npm-debug.log
+.env
+.git
+.gitignore
+dist
+build
+*.md
+.vscode
+
+NETWORKS
+--------
+✓ Bridge network para comunicación interna
+✓ Containers se comunican por nombre de servicio
+✓ Ejemplo: api llama a postgres:5432
+✓ Web llama a api:4000
+✓ Puertos expuestos solo donde necesario
+
+VOLUMES
+-------
+✓ Named volumes para persistencia
+✓ postgres_data → Datos de PostgreSQL
+✓ api_uploads → Archivos subidos
+✓ api_logs → Logs de aplicación
+✓ Bind mounts solo en desarrollo (hot reload)
+✓ NUNCA usar bind mounts en producción
+
+HEALTH CHECKS
+-------------
+✓ Postgres: pg_isready
+✓ API: HTTP GET /health
+✓ Web: wget /health
+✓ Configurar interval, timeout, retries
+✓ start_period para tiempo de inicialización
+✓ depends_on con condition: service_healthy
+
+EJEMPLO HEALTHCHECK:
+healthcheck:
+  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s
+
+RESOURCE LIMITS
+---------------
+✓ Prevenir que un servicio consuma todos los recursos
+✓ Configurar limits y reservations
+✓ CPU en cores (0.5 = 50% de un core)
+✓ Memory en MB o GB
+
+EJEMPLO:
+deploy:
+  resources:
+    limits:
+      cpus: '1.0'
+      memory: 512M
+    reservations:
+      cpus: '0.5'
+      memory: 256M
+
+ENTRYPOINT SCRIPTS
+------------------
+✓ Esperar a que dependencias estén listas
+✓ Ejecutar migraciones de DB
+✓ Inicializar configuración
+✓ Ejecutar comando principal con exec "$@"
+✓ Usar set -e para fallar rápido
+✓ Logs descriptivos
+
+EJEMPLO:
+#!/bin/sh
+set -e
+wait_for_db
+npm run migrate
+exec "$@"
+
+VARIABLES DE ENTORNO
+--------------------
+✓ Definir en .env (no commitear)
+✓ .env.example como template
+✓ Usar ${VAR:-default} para defaults
+✓ Usar ${VAR:?error} para requeridas
+✓ Pasar a services en docker-compose.yml
+✓ Diferentes .env para dev/staging/prod
+
+COMANDOS DOCKER COMPOSE
+-----------------------
+# Iniciar servicios
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f [service]
+
+# Detener servicios
+docker-compose down
+
+# Rebuild imágenes
+docker-compose build [service]
+
+# Rebuild y reiniciar
+docker-compose up -d --build
+
+# Ver estado
+docker-compose ps
+
+# Ejecutar comando en servicio
+docker-compose exec api npm run migrate
+
+# Ver logs en tiempo real
+docker-compose logs -f api
+
+# Escalar servicios
+docker-compose up -d --scale api=3
+
+# Limpiar todo (CUIDADO: borra volúmenes)
+docker-compose down -v
+
+DESARROLLO LOCAL
+----------------
+✓ Usar target: development en build
+✓ Bind mounts para hot reload:
+  volumes:
+    - ./api/src:/app/src
+✓ Exponer puertos para debugging
+✓ Logs verbosos
+✓ No usar resource limits estrictos
+
+PRODUCCIÓN
+----------
+✓ Usar target: production en build
+✓ No bind mounts
+✓ Resource limits configurados
+✓ Health checks habilitados
+✓ Restart: unless-stopped
+✓ Secrets desde archivos o vault (no .env)
+✓ Logs a sistema centralizado
+✓ Monitoreo configurado
+
+SEGURIDAD
+---------
+✓ Usuario no-root en containers
+✓ Read-only filesystem cuando sea posible
+✓ No exponer puertos innecesarios
+✓ Usar secrets para datos sensibles
+✓ Escanear imágenes por vulnerabilidades
+✓ Actualizar imágenes base regularmente
+✓ Network isolation apropiada
+
+OPTIMIZACIÓN
+------------
+✓ Multi-stage builds
+✓ Cache de layers
+✓ Minimizar layers (combinar RUN)
+✓ .dockerignore completo
+✓ Imágenes Alpine
+✓ Limpiar archivos temporales
+✓ No instalar dependencias innecesarias
+
+DEBUGGING
+---------
+# Entrar a container
+docker-compose exec api sh
+
+# Ver logs
+docker-compose logs -f api
+
+# Inspeccionar container
+docker inspect app-api
+
+# Ver procesos
+docker-compose top
+
+# Ver uso de recursos
+docker stats
+
+# Ver networks
+docker network ls
+docker network inspect app_network
+
+# Ver volumes
+docker volume ls
+docker volume inspect app_postgres_data
+
+PROFILES
+--------
+✓ Servicios opcionales con profiles
+✓ Ejemplo: pgadmin con profile "tools"
+✓ Activar con: docker-compose --profile tools up
+
+EJEMPLO:
+pgadmin:
+  image: dpage/pgadmin4
+  profiles:
+    - tools
+
+BACKUPS
+-------
+# Backup de volumen
+docker run --rm -v app_postgres_data:/data -v $(pwd):/backup alpine tar czf /backup/postgres-backup.tar.gz /data
+
+# Restore de volumen
+docker run --rm -v app_postgres_data:/data -v $(pwd):/backup alpine tar xzf /backup/postgres-backup.tar.gz -C /
+
+# Backup de DB
+docker-compose exec postgres pg_dump -U postgres app_db > backup.sql
+
+# Restore de DB
+docker-compose exec -T postgres psql -U postgres app_db < backup.sql
+
+MONITOREO
+---------
+✓ docker stats para uso de recursos
+✓ Health checks para disponibilidad
+✓ Logs centralizados (ELK, Loki, etc.)
+✓ Alertas en fallos de health checks
+✓ Prometheus + Grafana para métricas
+
+TROUBLESHOOTING
+---------------
+# Container no inicia
+docker-compose logs [service]
+docker-compose exec [service] sh
+
+# Problemas de red
+docker network inspect app_network
+ping desde un container a otro
+
+# Problemas de volumen
+docker volume inspect [volume]
+verificar permisos
+
+# Limpiar todo y empezar de cero
+docker-compose down -v
+docker system prune -a
+
+# Ver uso de disco
+docker system df
+
+ANTI-PATTERNS
+-------------
+✗ Usar latest tag
+✗ Ejecutar como root
+✗ No usar .dockerignore
+✗ Copiar node_modules
+✗ No usar multi-stage builds
+✗ Exponer puertos innecesarios
+✗ No configurar health checks
+✗ Hardcodear configuración
+✗ No usar volumes para datos persistentes
+✗ Logs a archivos en container
+
+INTEGRACIÓN CI/CD
+-----------------
+✓ Build automático en push
+✓ Tests en containers
+✓ Push a registry (Docker Hub, ECR, etc.)
+✓ Deploy automático a staging/producción
+✓ Rollback automático en fallos
+✓ Versionado de imágenes (tags)
+
+EJEMPLO WORKFLOW:
+1. git push
+2. CI build imagen
+3. CI run tests en container
+4. CI push imagen a registry
+5. CD pull imagen en servidor
+6. CD ejecuta docker-compose up -d
+7. Health checks verifican deploy

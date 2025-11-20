@@ -1,0 +1,26 @@
+# Base Template - Environment Variables
+
+# =============================================
+# Database Configuration
+# =============================================
+POSTGRES_DB=app_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=template123
+
+# =============================================
+# Security
+# =============================================
+# JWT Secret - Generate with: openssl rand -base64 32
+JWT_SECRET=dGVtcGxhdGVfc2VjcmV0X2tleV9mb3JfdGVzdGluZ19wdXJwb3Nlcw==
+
+# JWT Expiration (e.g., 12h, 7d, 30d)
+JWT_EXPIRES_IN=12h
+
+# Encryption Key - Generate with: openssl rand -hex 32
+ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+
+# =============================================
+# CORS Configuration
+# =============================================
+# Comma-separated list of allowed origins
+CORS_ORIGIN=http://localhost:5173,http://localhost:8080

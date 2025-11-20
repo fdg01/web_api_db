@@ -1,0 +1,258 @@
+================================================================================
+DATABASE - CONSIDERACIONES DE DESARROLLO
+================================================================================
+
+POSTGRESQL
+----------
+✓ Versión 15+ recomendada
+✓ Configurar max_connections apropiadamente
+✓ Usar connection pooling (configurado en Sequelize)
+✓ Índices en foreign keys automáticamente
+✓ Índices adicionales en campos de búsqueda frecuente
+
+DISEÑO DE SCHEMA
+----------------
+✓ Normalización apropiada (3NF generalmente)
+✓ Usar snake_case para nombres de tablas y columnas
+✓ Primary keys auto-incrementales (SERIAL)
+✓ Foreign keys con ON DELETE/ON UPDATE apropiados
+✓ NOT NULL en campos requeridos
+✓ DEFAULT values cuando sea apropiado
+✓ CHECK constraints para validaciones de negocio
+✓ UNIQUE constraints donde corresponda
+
+TIPOS DE DATOS
+--------------
+✓ INTEGER para IDs y números enteros
+✓ VARCHAR(n) con límite apropiado
+✓ TEXT para contenido largo sin límite
+✓ BOOLEAN para flags
+✓ TIMESTAMP para fechas/horas
+✓ DECIMAL(p,s) para dinero (no FLOAT)
+✓ JSONB para datos semi-estructurados
+✓ ENUM para valores fijos (creado en migración)
+
+ÍNDICES
+-------
+✓ Primary key tiene índice automático
+✓ Foreign keys necesitan índices explícitos
+✓ Índices en campos de búsqueda frecuente
+✓ Índices compuestos para queries específicos
+✓ No sobre-indexar (impacta INSERT/UPDATE)
+✓ Analizar query plans (EXPLAIN ANALYZE)
+✓ Mantener estadísticas actualizadas (ANALYZE)
+
+MIGRACIONES
+-----------
+✓ Una migración por cambio lógico
+✓ Nombres descriptivos: YYYYMMDDHHMMSS-description.js
+✓ NUNCA modificar migraciones ejecutadas
+✓ Siempre implementar up() y down()
+✓ Probar rollback antes de producción
+✓ Usar transacciones en migraciones complejas:
+  await queryInterface.sequelize.transaction(async (t) => {
+    // operaciones
+  });
+✓ Backup antes de ejecutar en producción
+✓ Ejecutar en orden cronológico
+
+EJEMPLO MIGRACIÓN:
+'use strict';
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.createTable('table_name', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+      },
+      // ... campos
+      created_at: {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+      },
+      updated_at: {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+      }
+    });
+    
+    // Índices
+    await queryInterface.addIndex('table_name', ['campo']);
+  },
+  
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.dropTable('table_name');
+  }
+};
+
+RELACIONES
+----------
+✓ One-to-Many: foreign key en tabla "many"
+✓ Many-to-Many: tabla intermedia con dos foreign keys
+✓ One-to-One: foreign key + UNIQUE constraint
+✓ Definir ON DELETE CASCADE/SET NULL apropiadamente
+✓ Índices en todas las foreign keys
+
+SEQUELIZE MODELS
+----------------
+✓ Usar underscored: true para mapeo snake_case
+✓ timestamps: true para created_at/updated_at
+✓ Validaciones en modelo además de DB
+✓ Hooks para lógica pre/post operaciones
+✓ toJSON() para excluir campos sensibles
+✓ Métodos de instancia para lógica específica
+✓ Métodos estáticos para queries complejos
+
+EJEMPLO MODELO:
+module.exports = (sequelize, DataTypes) => {
+  const Model = sequelize.define('Model', {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
+    campo: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+        len: [2, 100]
+      }
+    }
+  }, {
+    tableName: 'models',
+    timestamps: true,
+    underscored: true
+  });
+
+  Model.associate = (models) => {
+    Model.belongsTo(models.User);
+  };
+
+  return Model;
+};
+
+QUERIES
+-------
+✓ Usar Sequelize ORM (no raw queries salvo necesario)
+✓ Eager loading para evitar N+1:
+  Model.findAll({ include: [{ model: Related }] })
+✓ Select específico:
+  Model.findAll({ attributes: ['id', 'name'] })
+✓ Pagination:
+  Model.findAll({ limit: 10, offset: 0 })
+✓ Ordenamiento:
+  Model.findAll({ order: [['created_at', 'DESC']] })
+✓ Transacciones para operaciones múltiples:
+  await sequelize.transaction(async (t) => {
+    await Model.create({...}, { transaction: t });
+    await Other.update({...}, { transaction: t });
+  });
+
+PERFORMANCE
+-----------
+✓ Índices en campos de búsqueda
+✓ LIMIT en queries que pueden retornar muchos resultados
+✓ Evitar SELECT * (especificar campos)
+✓ Eager loading vs Lazy loading apropiadamente
+✓ Cachear queries frecuentes (Redis, etc.)
+✓ Analizar slow queries
+✓ Connection pooling configurado
+✓ Vacuum y analyze periódicos
+
+SEGURIDAD
+---------
+✓ NUNCA usar string concatenation para queries
+✓ Sequelize previene SQL injection automáticamente
+✓ Validar inputs antes de queries
+✓ Principio de mínimo privilegio (usuarios DB)
+✓ Encriptar datos sensibles en DB
+✓ Backups encriptados
+✓ SSL/TLS para conexiones en producción
+
+BACKUPS
+-------
+✓ Backups automáticos diarios
+✓ Retention policy definida
+✓ Probar restauración periódicamente
+✓ Backups antes de migraciones
+✓ Backups offsite/cloud
+✓ Comando ejemplo:
+  docker exec app-db pg_dump -U postgres app_db > backup.sql
+
+DOCKER VOLUMES
+--------------
+✓ Volumen para datos: postgres_data
+✓ Persistencia garantizada
+✓ Backups del volumen
+✓ No commitear datos de DB
+✓ Limpiar volúmenes huérfanos:
+  docker volume prune
+
+MONITOREO
+---------
+✓ Logs de queries lentas
+✓ Monitorear conexiones activas
+✓ Espacio en disco
+✓ Performance de queries
+✓ Deadlocks
+✓ Replication lag (si aplica)
+
+TESTING
+-------
+✓ Base de datos de test separada
+✓ Seed data para tests
+✓ Limpiar DB entre tests
+✓ Probar migraciones up/down
+✓ Probar constraints y validaciones
+✓ Probar transacciones y rollbacks
+
+CONVENCIONES
+------------
+✓ Tablas: plural, snake_case (users, order_items)
+✓ Columnas: singular, snake_case (user_id, created_at)
+✓ Índices: idx_table_column
+✓ Foreign keys: fk_table_referenced_table
+✓ Unique constraints: uq_table_column
+
+ANTI-PATTERNS
+-------------
+✗ Modificar migraciones ejecutadas
+✗ No usar transacciones para operaciones múltiples
+✗ No tener índices en foreign keys
+✗ Usar FLOAT para dinero
+✗ No validar datos antes de INSERT
+✗ No hacer backups
+✗ Hardcodear credenciales
+✗ No probar rollback de migraciones
+✗ Queries N+1
+✗ SELECT * en producción
+
+COMANDOS ÚTILES
+---------------
+# Ejecutar migraciones
+npm run migrate
+
+# Rollback última migración
+npm run migrate:undo
+
+# Ver status de migraciones
+npm run migrate:status
+
+# Conectar a DB en Docker
+docker exec -it app-db psql -U postgres -d app_db
+
+# Backup
+docker exec app-db pg_dump -U postgres app_db > backup.sql
+
+# Restore
+docker exec -i app-db psql -U postgres app_db < backup.sql
+
+# Ver logs de DB
+docker logs app-db
+
+# Reiniciar DB
+docker restart app-db
